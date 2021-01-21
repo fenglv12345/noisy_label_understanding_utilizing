@@ -34,6 +34,7 @@ filepath_INCV = os.path.join(save_dir,INCV_name+'-noisy.h5')
 
 #################################################################################################################################
 """ Data preparation """
+#可以看到的是 对于测试集是干净的测试集，对于训练集则是进行人工打乱的训练集合．之前筛选的数据是否会进行数据保存呢？
 
 if dataset=='cifar10':
     x_train, y_train, _, _, x_test, y_test = data.prepare_cifar10_data(data_dir='data/cifar-10-batches-py')
@@ -197,7 +198,7 @@ for iter in range(1,INCV_iter+1):
 #np.save('y_val.npy',y_train[val_idx,:])
 #np.save('y_discard_noisy.npy',y_train_noisy[discard_idx,:])
 #np.save('y_discard.npy',y_train[discard_idx,:])
-
+#上面应该是已经完成了dataset的discard和select
 ##################################################################################################################################
 """ Main training """
 
@@ -257,7 +258,8 @@ else:
 noise_ratio_selected = (eval_ratio*eval_ratio) / (eval_ratio*eval_ratio + class_constant*(1-eval_ratio)*(1-eval_ratio))
 print('Evaluated noisy of selected training set: %.4f\n'%noise_ratio_selected)
 
-# parameters of val set      
+# parameters of val set
+# 对于val set对应的batch_size的设置
 batch_size_val = min(int(np.sum(val_idx)*batch_size/(np.sum(train_idx))), int(0.5*batch_size))
 print('val_size: %d'%(np.sum(val_idx)))
 print('batch_size: %d'%batch_size)
@@ -271,7 +273,7 @@ if noise_pattern == 'asym' or eval_ratio>0.6:
 else:
     e_warm_up = 40
 train_size = np.sum(train_idx)
-    
+#这一部分代码似乎有些冗余    
 for e in range(epochs):    
     if e == 180:
         lr *= 0.5
@@ -292,7 +294,7 @@ for e in range(epochs):
 
     n_keep = round(batch_size*(1-noise_ratio_selected*min(1,e/Tk)))
     print("Epoch: %d/%d; Learning rate: %.7f; n_keep: %d\n" % (e+1, epochs, lr, n_keep))
-    
+    #这里使用的就是co_teaching的方式进行的训练
     batches = 0
     for x_S, y_S, x_val, y_val in merged_datagen_flow(
                                                     x_train[train_idx,:], y_train_noisy[train_idx,:],
@@ -346,6 +348,7 @@ model1.save(filepath1)
 model2.save(filepath2)
 
 """ Test """
+#这个测试是在什么测试集上进行的测试？
 print('Test on model1')
 scores = model1.evaluate(x_test, y_test, verbose=1)
 print('Test loss:', scores[0])
